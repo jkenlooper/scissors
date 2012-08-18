@@ -1,0 +1,23 @@
+cli takes following args
+
+empty directory-name
+svg file with paths to cut along
+image to cut
+
+
+process
+  verify svg paths stretch from end to end
+
+  for each vertical svg path
+    create a png from it
+    fill in left side
+    create composite of image (copy opacity?) with last mask and the filled in side with the rest being transparent
+
+  for each horizontal svg path
+    create a png from it
+    fill in top side
+    create composite image
+    trim empty space
+    if there are actual opaque pixels than name the file
+    
+    
