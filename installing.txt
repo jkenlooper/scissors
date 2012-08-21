@@ -1,0 +1,6 @@
+
+depends on:
+	graphicsmagick
+	libgraphicsmagick++-dev
+	libboost-python-dev
+	python2.7-cairo

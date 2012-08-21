@@ -30,9 +30,9 @@ setup(
     zip_safe=False,
     install_requires=[
         'setuptools',
-        'libxml',
-        #'pycairo',
-        'CairoSVG',
+        #'libxml',
+        #'py2cairo',
+        #'CairoSVG',
         'pgmagick', # relies on graphicsmagick
         'svgwrite',
         'beautifulsoup4', #works on python2.6 ?
@@ -42,6 +42,6 @@ setup(
     entry_points="""
     [console_scripts]
     cut = scissors.script:cut
-    cairosvg = cairosvg:main
+    rasterize = scissors.script:rasterize
     """,
 )
