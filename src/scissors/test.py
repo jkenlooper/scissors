@@ -3,13 +3,15 @@
 import os.path
 import unittest
 
-import scissors.
+import svgwrite
+
+from scissors.base import Clips, Scissors
+
+#import scissors.
 
 class Mixin(object):
     def setUp(self):
         """Before each test, set up the scissors"""
-        self.app = chill.app.make_app(config=TEST_CFG, debug=True)
-        self.test_client = self.app.test_client()
 
     def tearDown(self):
         """Get rid of the database again after each test."""
@@ -19,12 +21,19 @@ class SimpleCuts(Mixin, unittest.TestCase):
 
     def test_one_vertical(self):
         """A single vertical cut"""
+        dwg = svgwrite.Drawing(size=(500,500), profile='full')
+        dwg.set_desc(title="Scratch drawing", desc="Just testing")
 
-        # all get the same page
-        rv = self.test_client.get('/index.html', follow_redirects=True)
-        assert 'stuff goes here' in rv.data
-        rv = self.test_client.get('/')
-        assert 'stuff goes here' in rv.data
+        g = dwg.add(dwg.g())
+        g['class'] = 'clip'
+        simple_path_down_center = g.add(
+                dwg.path('M 250 0 L 250 250 L 200 300 L 500 500 L 500 0')
+                )
+        clips = Clips(svgstring=dwg.tostring())
+
+        scissors = Scissors(clips, 'test.jpg', 'test')
+        scissors.cut()
+
 
 def suite():
     suite = unittest.TestSuite()

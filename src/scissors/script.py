@@ -4,6 +4,7 @@ def run():
 
 def cut():
     print 'chop, chop'
+    import scissors.scratch
 
 def rasterize(svg_file_name):
     """
