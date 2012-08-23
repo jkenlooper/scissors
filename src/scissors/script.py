@@ -4,7 +4,9 @@ def run():
 
 def cut():
     print 'chop, chop'
-    import scissors.scratch
+    from scissors.base import Clips
+    c = Clips(svgfile='drawing.svg')
+    #import scissors.scratch
 
 def rasterize(svg_file_name):
     """

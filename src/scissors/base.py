@@ -38,9 +38,9 @@ class Clips(object):
         """
         # create a soup from reading in the svgfile
         if (svgfile):
-            self._soup = BeautifulSoup(open(svgfile))
+            self._soup = BeautifulSoup(open(svgfile), 'xml')
         elif (svgstring):
-            self._soup = BeautifulSoup(svgstring)
+            self._soup = BeautifulSoup(svgstring, 'xml')
         else:
             raise ValueError('no svg specified')
 
@@ -53,40 +53,28 @@ class Clips(object):
         # able to add a class name to elements using wysiwyg type editors.
         #TODO: consider each top level element to be a 'layer' or clip
         for svg_clip in svg.find_all(self._tags, recursive=False):
+            # create a blank 'paper' ready to be clipped.
             dwg = svgwrite.Drawing(size=(self._width, self._height), profile='full')
             dwg.set_desc(title="Scissors Clip", desc="")
 
-            #add the defs element
             clip_path = dwg.defs.add(dwg.clipPath())
             clip_path['id'] = 'clip_path'
-            
-            
 
-
-            right_path = clip_path.add(
-                    dwg.path('M 250 0 L 250 250 L 200 300 L 500 500 L 500 0')
+            paper_rect = dwg.defs.add(
+                    dwg.rect((0,0), (self._width, self._height), fill="black",
+                        id="scissors_paper_rect")
                     )
-            #right_path['clip-rule'] = 'evenodd'
-            #clip_down_center.add(dwg.line((250,0), (250,500)))
-            clip_path.add(dwg.circle((200,20), 150))
-
-            test_rect = dwg.defs.add(
-                    dwg.rect((50,50), (400,400), fill="blue", id="test_rect")
-                    )
-
-            #dwg.defs.add(clip_down_center)
-
-            #test_rect = dwg.rect((50,50), (100,100))
             g = dwg.add(dwg.g())
-            inserted_test_rect = g.add(dwg.use(test_rect, insert=(0,0)))
-            inserted_test_rect['clip-path'] = 'url(#clip_path)'
-            #test_rect['clip-path'] = '#clip_down_center'
-            #dwg.add(test_rect)
+            g.add(dwg.use(paper_rect, insert=(0,0), clip_path='url(#clip_path)'))
 
-            dwg.save()
+            #read in paper to soup
+            paper_soup = BeautifulSoup(dwg.tostring())
+            #append svg_clip to clip_path
+            clip_path = paper_soup.find(id='clip_path')
+            clip_path.append(svg_clip)
 
+            print(paper_soup.prettify())
 
-        # create svgfile using svgwrite for each
 
 class Scissors(object):
     """
