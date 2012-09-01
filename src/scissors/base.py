@@ -31,10 +31,11 @@ class Clips(object):
             'clipPath',
             )
 
-    def __init__(self, svgfile=None, svgstring=None):
+    def __init__(self, svgfile=None, svgstring=None, clips_dir=None,
+            pretty=True):
         """
         Parse the svg paths document into individual clipPaths by finding
-        elements set to the marker class.
+        elements at the top level.
         """
         # create a soup from reading in the svgfile
         if (svgfile):
@@ -43,6 +44,8 @@ class Clips(object):
             self._soup = BeautifulSoup(svgstring, 'xml')
         else:
             raise ValueError('no svg specified')
+
+        self._clip_counter = 0
 
         # get the dimensions from svgfile
         svg = self._soup.svg
@@ -73,7 +76,13 @@ class Clips(object):
             clip_path = paper_soup.find(id='clip_path')
             clip_path.append(svg_clip)
 
-            print(paper_soup.prettify())
+            f = open(os.path.join(self.clips_dir, 'clip-%i.svg' %
+                self._clip_counter), 'w')
+            if pretty:
+                f.write(paper_soup.prettify())
+            else:
+                f.write(unicode(paper_soup))
+            f.close()
 
 
 class Scissors(object):
