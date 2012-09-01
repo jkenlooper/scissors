@@ -1,5 +1,7 @@
 from bs4 import BeautifulSoup
+from pgmagick import Image, CompositeOperator as co
 import svgwrite
+import os
 
 class Clips(object):
     """
@@ -31,7 +33,7 @@ class Clips(object):
             'clipPath',
             )
 
-    def __init__(self, svgfile=None, svgstring=None, clips_dir=None,
+    def __init__(self, svgfile=None, svgstring=None, clips_dir='',
             pretty=True):
         """
         Parse the svg paths document into individual clipPaths by finding
@@ -46,6 +48,7 @@ class Clips(object):
             raise ValueError('no svg specified')
 
         self._clip_counter = 0
+        self.clips_dir = clips_dir
 
         # get the dimensions from svgfile
         svg = self._soup.svg
@@ -71,10 +74,13 @@ class Clips(object):
             g.add(dwg.use(paper_rect, insert=(0,0), clip_path='url(#clip_path)'))
 
             #read in paper to soup
-            paper_soup = BeautifulSoup(dwg.tostring())
+            paper_soup = BeautifulSoup(dwg.tostring(), 'xml')
             #append svg_clip to clip_path
             clip_path = paper_soup.find(id='clip_path')
             clip_path.append(svg_clip)
+
+            # strip out any stuff that we don't need
+            # or add the xmlns?
 
             f = open(os.path.join(self.clips_dir, 'clip-%i.svg' %
                 self._clip_counter), 'w')
@@ -83,6 +89,7 @@ class Clips(object):
             else:
                 f.write(unicode(paper_soup))
             f.close()
+
 
 
 class Scissors(object):
@@ -103,3 +110,21 @@ class Scissors(object):
         """
         Create a mask (black and white image) from the clip.
         """
+
+    def _composite(self, mask, pic):
+        """
+        composite of mask and pic.
+        """
+        base = Image(pic)
+        layer = Image(mask) 
+        # anything that is opaque(black) in the layer will be cut. The rest
+        # will be discarded.
+        base.composite(layer, 0, 0, co.CopyOpacityCompositeOp)
+        base.write('out.png')
+
+        # make a new clip image
+        out = Image('out.png')
+        base = Image(pic)
+        base.composite(out, 100, 0, co.CopyOpacityCompositeOp)
+        base.write('out2.png')
+

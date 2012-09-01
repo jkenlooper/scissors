@@ -3,4 +3,7 @@ depends on:
 	graphicsmagick
 	libgraphicsmagick++-dev
 	libboost-python-dev
+	libxslt1-dev
+	python-libxslt1
+	python-libxml2
 	#python2.7-cairo
