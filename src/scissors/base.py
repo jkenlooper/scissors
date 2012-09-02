@@ -1,7 +1,9 @@
+import os
+import subprocess
+
 from bs4 import BeautifulSoup
 from pgmagick import Image, CompositeOperator as co
 import svgwrite
-import os
 
 class Clips(object):
     """
@@ -10,6 +12,8 @@ class Clips(object):
     """
     #clip_classname = 'clip'
     #group_classname = 'clip-group'
+
+    masks = []
 
     _soup = None
     _tags = (
@@ -40,6 +44,7 @@ class Clips(object):
         # then what the svgfile is set to.
         self._clip_counter = 0
         self.clips_dir = clips_dir
+        self.pretty = pretty
         # create a soup from reading in the svgfile
         if (svgfile):
             self._soup = BeautifulSoup(open(svgfile), 'xml')
@@ -49,6 +54,7 @@ class Clips(object):
             raise ValueError('no svg specified')
         self._create_clip_svgs()
         self._rasterize_clips()
+        self._composite_clips()
 
     def _create_clip_svgs(self):
         """
@@ -89,7 +95,7 @@ class Clips(object):
 
             f = open(os.path.join(self.clips_dir, 'clip-%i.svg' %
                 self._clip_counter), 'w')
-            if pretty:
+            if self.pretty:
                 f.write(paper_soup.prettify())
             else:
                 f.write(unicode(paper_soup))
@@ -111,8 +117,26 @@ class Clips(object):
 
         for clip_number in range(0, self.count):
             raster.append(os.path.join(self.clips_dir, 'clip-%i.svg' % clip_number))
+            self.masks.append(os.path.join(self.clips_dir, 'clip-%i.png' % clip_number))
 
         subprocess.call(raster, shell=False)
+
+    def _composite_clips(self):
+        """
+        for each rasterized clip subtract the alpha from the previous.
+        """
+        #skip the first clip as it doesn't need anything taken away from it.
+        for clip_number in range(1, self.count):
+            previous_clip = Image(os.path.join(self.clips_dir, 'clip-%i.png' %
+                int(clip_number-1)))
+            this_clip = Image(os.path.join(self.clips_dir, 'clip-%i.png' %
+                clip_number))
+
+            this_clip.composite(previous_clip, 0, 0, co.XorCompositeOp)
+            this_clip.write(os.path.join(self.clips_dir, "clip-%i.png" % clip_number))
+
+            # make a new clip image
+
 
 
 
@@ -134,6 +158,8 @@ class Scissors(object):
         """
         #TODO: multi-dimensional clips
         # for each clip; clip the image and place in target_directory
+        for clip_mask in self.clips.masks:
+            self._composite(clip_mask, self.image)
 
 
     def _composite(self, mask, pic):
@@ -145,11 +171,12 @@ class Scissors(object):
         # anything that is opaque(black) in the layer will be cut. The rest
         # will be discarded.
         base.composite(layer, 0, 0, co.CopyOpacityCompositeOp)
-        base.write('out.png')
+        base.write(os.path.join(self.target_directory, "%s-%s.png" %
+            (os.path.basename(pic), os.path.basename(mask))))
 
         # make a new clip image
-        out = Image('out.png')
-        base = Image(pic)
-        base.composite(out, 100, 0, co.CopyOpacityCompositeOp)
-        base.write('out2.png')
+        #out = Image('out.png')
+        #base = Image(pic)
+        #base.composite(out, 100, 0, co.CopyOpacityCompositeOp)
+        #base.write('out2.png')
 

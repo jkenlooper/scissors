@@ -1,5 +1,6 @@
 # test for image cut into two pieces vertically
 
+import os, glob
 import os.path
 import unittest
 
@@ -10,28 +11,72 @@ from scissors.base import Clips, Scissors
 #import scissors.
 
 class Mixin(object):
+    test_dir = 'test'
+
     def setUp(self):
-        """Before each test, set up the scissors"""
+        """Before testing setup"""
+
+    def _create_empty_dir(self, sub_dir):
+        """Before each test, create an empty test directory"""
+        print 'setup: %s' % sub_dir
+        try:
+            for p in glob.glob(os.path.join(self.test_dir, sub_dir, '*')):
+                os.unlink(p)
+            os.rmdir(os.path.join(self.test_dir, sub_dir))
+        except OSError:
+            pass
+        os.mkdir(os.path.join(self.test_dir, sub_dir))
 
     def tearDown(self):
-        """Get rid of the database again after each test."""
+        """Get rid of files."""
+        # don't want to do that just yet.
         pass
 
 class SimpleCuts(Mixin, unittest.TestCase):
 
-    def test_one_vertical(self):
+    def off_test_one_vertical(self):
         """A single vertical cut"""
-        dwg = svgwrite.Drawing(size=(500,500), profile='full')
+        sub_dir = 'test_one_vertical'
+        self._create_empty_dir(sub_dir)
+
+        dwg = svgwrite.Drawing(size=(1280,960), profile='full')
         dwg.set_desc(title="Scratch drawing", desc="Just testing")
 
         g = dwg.add(dwg.g())
         #g['class'] = 'clip'
         simple_path_down_center = g.add(
-                dwg.path('M 0 0 L 250 0 L 200 300 L 250 500 L 0 500')
+                dwg.path('M 0 0 L 250 0 L 200 300 L 250 960 L 0 960')
                 )
-        clips = Clips(svgstring=dwg.tostring())
+        clips = Clips(svgstring=dwg.tostring(),
+                clips_dir=os.path.join(self.test_dir, sub_dir))
 
-        scissors = Scissors(clips, 'wild-daisy.jpg', 'test')
+        scissors = Scissors(clips, 'wild-daisy.jpg',
+                os.path.join(self.test_dir, sub_dir))
+        scissors.cut()
+
+    def test_two_vertical(self):
+        """Two vertical cuts"""
+        sub_dir = 'test_two_vertical'
+        self._create_empty_dir(sub_dir)
+
+        dwg = svgwrite.Drawing(size=(1280,960), profile='full')
+        dwg.set_desc(title="Scratch drawing", desc="Just testing")
+
+        g1 = dwg.add(dwg.g())
+        simple_path_down_center = g1.add(
+                dwg.path('M 0 0 L 250 0 L 200 300 L 250 960 L 0 960')
+                )
+        g2 = dwg.add(dwg.g())
+        #g['class'] = 'clip'
+        simple_path_down_center = g2.add(
+                dwg.path('M 0 0 L 450 0 L 480 200 L 450 960 L 0 960')
+                )
+
+        clips = Clips(svgstring=dwg.tostring(),
+                clips_dir=os.path.join(self.test_dir, sub_dir))
+
+        scissors = Scissors(clips, 'wild-daisy.jpg',
+                os.path.join(self.test_dir, sub_dir))
         scissors.cut()
 
 
