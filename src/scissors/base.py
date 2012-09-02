@@ -6,6 +6,7 @@ import os
 class Clips(object):
     """
     Contains reference to all the clips created from a svg file.
+    Clips could be used on multiple images.
     """
     #clip_classname = 'clip'
     #group_classname = 'clip-group'
@@ -34,11 +35,11 @@ class Clips(object):
             )
 
     def __init__(self, svgfile=None, svgstring=None, clips_dir='',
-            pretty=True):
-        """
-        Parse the svg paths document into individual clipPaths by finding
-        elements at the top level.
-        """
+            dimensions=None, pretty=True):
+        #TODO: dimensions can be used to create a clips that is smaller/larger
+        # then what the svgfile is set to.
+        self._clip_counter = 0
+        self.clips_dir = clips_dir
         # create a soup from reading in the svgfile
         if (svgfile):
             self._soup = BeautifulSoup(open(svgfile), 'xml')
@@ -46,10 +47,14 @@ class Clips(object):
             self._soup = BeautifulSoup(svgstring, 'xml')
         else:
             raise ValueError('no svg specified')
+        self._create_clip_svgs()
+        self._rasterize_clips()
 
-        self._clip_counter = 0
-        self.clips_dir = clips_dir
-
+    def _create_clip_svgs(self):
+        """
+        Parse the svg file or string into individual clipPaths by finding
+        elements at the top level.
+        """
         # get the dimensions from svgfile
         svg = self._soup.svg
         self._width = svg.get('width', '100%')
@@ -89,6 +94,25 @@ class Clips(object):
             else:
                 f.write(unicode(paper_soup))
             f.close()
+            self._clip_counter = self._clip_counter + 1
+
+        self.count = self._clip_counter
+
+
+    def _rasterize_clips(self):
+        """
+        Converts clip-X.svg to clip-X.png which has an alpha channel where each
+        clip is.
+        """
+        raster = ['/usr/bin/java', '-Xint', '-jar']
+
+        #TODO: better way of getting the path to the rasterizer?
+        raster.append('batik-1.7/batik-rasterizer.jar')
+
+        for clip_number in range(0, self.count):
+            raster.append(os.path.join(self.clips_dir, 'clip-%i.svg' % clip_number))
+
+        subprocess.call(raster, shell=False)
 
 
 
@@ -101,15 +125,16 @@ class Scissors(object):
         """
         Init with a clips object, image, and target directory.
         """
+        self.image = image
+        self.clips = clips
+        self.target_directory = target_directory
 
     def cut(self):
         """
         """
+        #TODO: multi-dimensional clips
+        # for each clip; clip the image and place in target_directory
 
-    def _rasterize_clip(self, clip):
-        """
-        Create a mask (black and white image) from the clip.
-        """
 
     def _composite(self, mask, pic):
         """

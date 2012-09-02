@@ -25,13 +25,13 @@ class SimpleCuts(Mixin, unittest.TestCase):
         dwg.set_desc(title="Scratch drawing", desc="Just testing")
 
         g = dwg.add(dwg.g())
-        g['class'] = 'clip'
+        #g['class'] = 'clip'
         simple_path_down_center = g.add(
-                dwg.path('M 250 0 L 250 250 L 200 300 L 500 500 L 500 0')
+                dwg.path('M 0 0 L 250 0 L 200 300 L 250 500 L 0 500')
                 )
         clips = Clips(svgstring=dwg.tostring())
 
-        scissors = Scissors(clips, 'test.jpg', 'test')
+        scissors = Scissors(clips, 'wild-daisy.jpg', 'test')
         scissors.cut()
 
 
