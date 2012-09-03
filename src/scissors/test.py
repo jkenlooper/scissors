@@ -27,6 +27,11 @@ class Mixin(object):
             pass
         os.mkdir(os.path.join(self.test_dir, sub_dir))
 
+    def _scratch_drawing(self):
+        dwg = svgwrite.Drawing(size=(1280,960), profile='full')
+        dwg.set_desc(title="Scratch drawing", desc="Just testing")
+        return dwg
+
     def tearDown(self):
         """Get rid of files."""
         # don't want to do that just yet.
@@ -34,13 +39,12 @@ class Mixin(object):
 
 class SimpleCuts(Mixin, unittest.TestCase):
 
-    def off_test_one_vertical(self):
+    def _test_one_vertical(self):
         """A single vertical cut"""
         sub_dir = 'test_one_vertical'
         self._create_empty_dir(sub_dir)
 
-        dwg = svgwrite.Drawing(size=(1280,960), profile='full')
-        dwg.set_desc(title="Scratch drawing", desc="Just testing")
+        dwg = self._scratch_drawing()
 
         g = dwg.add(dwg.g())
         #g['class'] = 'clip'
@@ -54,20 +58,18 @@ class SimpleCuts(Mixin, unittest.TestCase):
                 os.path.join(self.test_dir, sub_dir))
         scissors.cut()
 
-    def test_two_vertical(self):
+    def _test_two_vertical(self):
         """Two vertical cuts"""
         sub_dir = 'test_two_vertical'
         self._create_empty_dir(sub_dir)
 
-        dwg = svgwrite.Drawing(size=(1280,960), profile='full')
-        dwg.set_desc(title="Scratch drawing", desc="Just testing")
+        dwg = self._scratch_drawing()
 
         g1 = dwg.add(dwg.g())
         simple_path_down_center = g1.add(
                 dwg.path('M 0 0 L 250 0 L 200 300 L 250 960 L 0 960')
                 )
         g2 = dwg.add(dwg.g())
-        #g['class'] = 'clip'
         simple_path_down_center = g2.add(
                 dwg.path('M 0 0 L 450 0 L 480 200 L 450 960 L 0 960')
                 )
@@ -79,6 +81,33 @@ class SimpleCuts(Mixin, unittest.TestCase):
                 os.path.join(self.test_dir, sub_dir))
         scissors.cut()
 
+    def test_three_vertical(self):
+        """Three vertical cuts"""
+        sub_dir = 'test_three_vertical'
+        self._create_empty_dir(sub_dir)
+
+        dwg = self._scratch_drawing()
+
+        g1 = dwg.add(dwg.g())
+        simple_path_down_center = g1.add(
+                dwg.path('M 0 0 L 250 0 L 200 300 L 250 960 L 0 960')
+                )
+        g2 = dwg.add(dwg.g())
+        simple_path_down_center = g2.add(
+                dwg.path('M 0 0 L 450 0 L 480 200 L 450 960 L 0 960')
+                )
+
+        g3 = dwg.add(dwg.g())
+        simple_path_down_center = g3.add(
+                dwg.path('M 0 0 L 650 0 L 680 400 L 650 960 L 0 960')
+                )
+
+        clips = Clips(svgstring=dwg.tostring(),
+                clips_dir=os.path.join(self.test_dir, sub_dir))
+
+        scissors = Scissors(clips, 'wild-daisy.jpg',
+                os.path.join(self.test_dir, sub_dir))
+        scissors.cut()
 
 def suite():
     suite = unittest.TestSuite()

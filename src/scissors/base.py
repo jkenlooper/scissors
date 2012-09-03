@@ -117,7 +117,6 @@ class Clips(object):
 
         for clip_number in range(0, self.count):
             raster.append(os.path.join(self.clips_dir, 'clip-%i.svg' % clip_number))
-            self.masks.append(os.path.join(self.clips_dir, 'clip-%i.png' % clip_number))
 
         subprocess.call(raster, shell=False)
 
@@ -126,6 +125,10 @@ class Clips(object):
         for each rasterized clip subtract the alpha from the previous.
         """
         #skip the first clip as it doesn't need anything taken away from it.
+        this_clip = Image(os.path.join(self.clips_dir, 'clip-0.png'))
+        this_clip.write(os.path.join(self.clips_dir, "clip-co-0.png"))
+        self.masks.append(os.path.join(self.clips_dir, 'clip-co-0.png'))
+
         for clip_number in range(1, self.count):
             previous_clip = Image(os.path.join(self.clips_dir, 'clip-%i.png' %
                 int(clip_number-1)))
@@ -133,11 +136,8 @@ class Clips(object):
                 clip_number))
 
             this_clip.composite(previous_clip, 0, 0, co.XorCompositeOp)
-            this_clip.write(os.path.join(self.clips_dir, "clip-%i.png" % clip_number))
-
-            # make a new clip image
-
-
+            this_clip.write(os.path.join(self.clips_dir, "clip-co-%i.png" % clip_number))
+            self.masks.append(os.path.join(self.clips_dir, 'clip-co-%i.png' % clip_number))
 
 
 class Scissors(object):
