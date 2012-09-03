@@ -46,7 +46,8 @@ class SimpleCuts(Mixin, unittest.TestCase):
 
         dwg = self._scratch_drawing()
 
-        g = dwg.add(dwg.g())
+        layer = dwg.add(dwg.g())
+        g = layer.add(dwg.g())
         #g['class'] = 'clip'
         simple_path_down_center = g.add(
                 dwg.path('M 0 0 L 250 0 L 200 300 L 250 960 L 0 960')
@@ -65,11 +66,12 @@ class SimpleCuts(Mixin, unittest.TestCase):
 
         dwg = self._scratch_drawing()
 
-        g1 = dwg.add(dwg.g())
+        layer = dwg.add(dwg.g())
+        g1 = layer.add(dwg.g())
         simple_path_down_center = g1.add(
                 dwg.path('M 0 0 L 250 0 L 200 300 L 250 960 L 0 960')
                 )
-        g2 = dwg.add(dwg.g())
+        g2 = layer.add(dwg.g())
         simple_path_down_center = g2.add(
                 dwg.path('M 0 0 L 450 0 L 480 200 L 450 960 L 0 960')
                 )
@@ -88,16 +90,17 @@ class SimpleCuts(Mixin, unittest.TestCase):
 
         dwg = self._scratch_drawing()
 
-        g1 = dwg.add(dwg.g())
+        layer = dwg.add(dwg.g())
+        g1 = layer.add(dwg.g())
         simple_path_down_center = g1.add(
                 dwg.path('M 0 0 L 250 0 L 200 300 L 250 960 L 0 960')
                 )
-        g2 = dwg.add(dwg.g())
+        g2 = layer.add(dwg.g())
         simple_path_down_center = g2.add(
                 dwg.path('M 0 0 L 450 0 L 480 200 L 450 960 L 0 960')
                 )
 
-        g3 = dwg.add(dwg.g())
+        g3 = layer.add(dwg.g())
         simple_path_down_center = g3.add(
                 dwg.path('M 0 0 L 650 0 L 680 400 L 650 960 L 0 960')
                 )

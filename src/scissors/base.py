@@ -15,6 +15,8 @@ class Clips(object):
 
     masks = []
 
+    _clip_layers = []
+
     _soup = None
     _tags = (
             'line',
@@ -68,41 +70,44 @@ class Clips(object):
 
         # find all elements with the clip classname? not always possible to be
         # able to add a class name to elements using wysiwyg type editors.
-        #TODO: consider each top level element to be a 'layer' or clip
-        for svg_clip in svg.find_all(self._tags, recursive=False):
-            # create a blank 'paper' ready to be clipped.
-            dwg = svgwrite.Drawing(size=(self._width, self._height), profile='full')
-            dwg.set_desc(title="Scissors Clip", desc="")
+        for layer in svg.find_all('g', recursive=False):
+            clip_layer = []
+            for svg_clip in layer.find_all(self._tags, recursive=False):
+                # create a blank 'paper' ready to be clipped.
+                dwg = svgwrite.Drawing(size=(self._width, self._height), profile='full')
+                dwg.set_desc(title="Scissors Clip", desc="")
 
-            clip_path = dwg.defs.add(dwg.clipPath())
-            clip_path['id'] = 'clip_path'
+                clip_path = dwg.defs.add(dwg.clipPath())
+                clip_path['id'] = 'clip_path'
 
-            paper_rect = dwg.defs.add(
-                    dwg.rect((0,0), (self._width, self._height), fill="black",
-                        id="scissors_paper_rect")
-                    )
-            g = dwg.add(dwg.g())
-            g.add(dwg.use(paper_rect, insert=(0,0), clip_path='url(#clip_path)'))
+                paper_rect = dwg.defs.add(
+                        dwg.rect((0,0), (self._width, self._height), fill="black",
+                            id="scissors_paper_rect")
+                        )
+                g = dwg.add(dwg.g())
+                g.add(dwg.use(paper_rect, insert=(0,0), clip_path='url(#clip_path)'))
 
-            #read in paper to soup
-            paper_soup = BeautifulSoup(dwg.tostring(), 'xml')
-            #append svg_clip to clip_path
-            clip_path = paper_soup.find(id='clip_path')
-            clip_path.append(svg_clip)
+                #read in paper to soup
+                paper_soup = BeautifulSoup(dwg.tostring(), 'xml')
+                #append svg_clip to clip_path
+                clip_path = paper_soup.find(id='clip_path')
+                clip_path.append(svg_clip)
 
-            # strip out any stuff that we don't need
-            # or add the xmlns?
+                # strip out any stuff that we don't need
+                # or add the xmlns?
+                clip_id = '%i-%i' % (len(clip_layer), len(self._clip_layers))
 
-            f = open(os.path.join(self.clips_dir, 'clip-%i.svg' %
-                self._clip_counter), 'w')
-            if self.pretty:
-                f.write(paper_soup.prettify())
-            else:
-                f.write(unicode(paper_soup))
-            f.close()
-            self._clip_counter = self._clip_counter + 1
+                f = open(os.path.join(self.clips_dir, 'clip-%s.svg' % clip_id), 'w')
+                if self.pretty:
+                    f.write(paper_soup.prettify())
+                else:
+                    f.write(unicode(paper_soup))
+                f.close()
+                #self._clip_counter = self._clip_counter + 1
+                clip_layer.append(clip_id)
+            self._clip_layers.append(clip_layer)
 
-        self.count = self._clip_counter
+        #self.count = self._clip_counter
 
 
     def _rasterize_clips(self):
@@ -115,8 +120,9 @@ class Clips(object):
         #TODO: better way of getting the path to the rasterizer?
         raster.append('batik-1.7/batik-rasterizer.jar')
 
-        for clip_number in range(0, self.count):
-            raster.append(os.path.join(self.clips_dir, 'clip-%i.svg' % clip_number))
+        for clip_layer in self._clip_layers:
+            for clip_id in clip_layer:
+                raster.append(os.path.join(self.clips_dir, 'clip-%s.svg' % clip_id))
 
         subprocess.call(raster, shell=False)
 
@@ -124,20 +130,29 @@ class Clips(object):
         """
         for each rasterized clip subtract the alpha from the previous.
         """
+
         #skip the first clip as it doesn't need anything taken away from it.
-        this_clip = Image(os.path.join(self.clips_dir, 'clip-0.png'))
-        this_clip.write(os.path.join(self.clips_dir, "clip-co-0.png"))
-        self.masks.append(os.path.join(self.clips_dir, 'clip-co-0.png'))
+        this_clip = Image(os.path.join(self.clips_dir, 'clip-0-0.png'))
+        this_clip.write(os.path.join(self.clips_dir, "clip-co-0-0.png"))
+        self.masks.append(os.path.join(self.clips_dir, 'clip-co-0-0.png'))
 
-        for clip_number in range(1, self.count):
-            previous_clip = Image(os.path.join(self.clips_dir, 'clip-%i.png' %
-                int(clip_number-1)))
-            this_clip = Image(os.path.join(self.clips_dir, 'clip-%i.png' %
-                clip_number))
+        clip_i = 0
+        for clip_layer in self._clip_layers[:1]:
+            for clip_id in clip_layer[1:]:
+                previous_clip = Image(os.path.join(self.clips_dir, 'clip-%s.png' %
+                    clip_layer[clip_i]))
+                this_clip = Image(os.path.join(self.clips_dir, 'clip-%s.png' %
+                    clip_id))
 
-            this_clip.composite(previous_clip, 0, 0, co.XorCompositeOp)
-            this_clip.write(os.path.join(self.clips_dir, "clip-co-%i.png" % clip_number))
-            self.masks.append(os.path.join(self.clips_dir, 'clip-co-%i.png' % clip_number))
+                this_clip.composite(previous_clip, 0, 0, co.XorCompositeOp)
+                #TODO: verify that clip still has some pixels
+                this_clip.write(os.path.join(self.clips_dir, "clip-co-%s.png" %
+                    clip_id))
+                self.masks.append(os.path.join(self.clips_dir, 'clip-co-%s.png'
+                    % clip_id))
+                clip_i = clip_i + 1
+
+        #for clip_layer in self._clip_layers:
 
 
 class Scissors(object):
@@ -173,10 +188,4 @@ class Scissors(object):
         base.composite(layer, 0, 0, co.CopyOpacityCompositeOp)
         base.write(os.path.join(self.target_directory, "%s-%s.png" %
             (os.path.basename(pic), os.path.basename(mask))))
-
-        # make a new clip image
-        #out = Image('out.png')
-        #base = Image(pic)
-        #base.composite(out, 100, 0, co.CopyOpacityCompositeOp)
-        #base.write('out2.png')
 
