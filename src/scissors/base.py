@@ -93,8 +93,9 @@ class Clips(object):
                 clip_path = paper_soup.find(id='clip_path')
                 clip_path.append(svg_clip)
 
-                # strip out any stuff that we don't need
+                #TODO: strip out any stuff that we don't need
                 # or add the xmlns?
+
                 clip_id = '%i-%i' % (len(clips), len(self._clip_layers))
 
                 f = open(os.path.join(self.clips_dir, 'clip-%s.svg' % clip_id), 'w')
@@ -185,11 +186,8 @@ class Clips(object):
 
 
 
-
-
 class Scissors(object):
     """
-
     """
 
     def __init__(self, clips, image, target_directory):
@@ -203,8 +201,6 @@ class Scissors(object):
     def cut(self):
         """
         """
-        #TODO: multi-dimensional clips
-        # for each clip; clip the image and place in target_directory
         for clip_mask in self.clips.masks:
             self._composite(clip_mask, self.image)
 
@@ -215,9 +211,8 @@ class Scissors(object):
         """
         base = Image(pic)
         layer = Image(mask) 
-        # anything that is opaque(black) in the layer will be cut. The rest
-        # will be discarded.
         base.composite(layer, 0, 0, co.CopyOpacityCompositeOp)
         base.write(os.path.join(self.target_directory, "%s-%s.png" %
             (os.path.basename(pic), os.path.basename(mask))))
+        #TODO: trim and save the offset
 
