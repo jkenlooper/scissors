@@ -39,7 +39,7 @@ class Mixin(object):
 
 class SimpleCuts(Mixin, unittest.TestCase):
 
-    def _test_one_vertical(self):
+    def test_one_vertical(self):
         """A single vertical cut"""
         sub_dir = 'test_one_vertical'
         self._create_empty_dir(sub_dir)
@@ -59,7 +59,7 @@ class SimpleCuts(Mixin, unittest.TestCase):
                 os.path.join(self.test_dir, sub_dir))
         scissors.cut()
 
-    def _test_two_vertical(self):
+    def test_two_vertical(self):
         """Two vertical cuts"""
         sub_dir = 'test_two_vertical'
         self._create_empty_dir(sub_dir)
@@ -111,6 +111,46 @@ class SimpleCuts(Mixin, unittest.TestCase):
         scissors = Scissors(clips, 'wild-daisy.jpg',
                 os.path.join(self.test_dir, sub_dir))
         scissors.cut()
+
+class DoubleCuts(Mixin, unittest.TestCase):
+
+    def test_three_and_one(self):
+        """Three vertical cut and one horizontal"""
+        sub_dir = 'test_three_and_one'
+        self._create_empty_dir(sub_dir)
+
+        dwg = self._scratch_drawing()
+
+        layer1 = dwg.add(dwg.g())
+        g1 = layer1.add(dwg.g())
+        simple_path_down_center = g1.add(
+                dwg.path('M 0 0 L 250 0 L 200 300 L 250 960 L 0 960')
+                )
+        g2 = layer1.add(dwg.g())
+        simple_path_down_center = g2.add(
+                dwg.path('M 0 0 L 450 0 L 480 200 L 450 960 L 0 960')
+                )
+
+        g3 = layer1.add(dwg.g())
+        simple_path_down_center = g3.add(
+                dwg.path('M 0 0 L 650 0 L 680 400 L 650 960 L 0 960')
+                )
+
+        # layer 2
+        layer2 = dwg.add(dwg.g())
+        g1 = layer2.add(dwg.g())
+        simple_path = g1.add(
+                dwg.path('M 0 0 L 1280 0 L 1280 200 L 600 360 L 0 200')
+                )
+
+        clips = Clips(svgstring=dwg.tostring(),
+                clips_dir=os.path.join(self.test_dir, sub_dir))
+
+        scissors = Scissors(clips, 'wild-daisy.jpg',
+                os.path.join(self.test_dir, sub_dir))
+        scissors.cut()
+
+
 
 def suite():
     suite = unittest.TestSuite()
