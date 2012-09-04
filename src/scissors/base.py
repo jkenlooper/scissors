@@ -1,5 +1,6 @@
 import os
 import subprocess
+from tempfile import SpooledTemporaryFile
 
 from bs4 import BeautifulSoup
 from pgmagick import Image, CompositeOperator as co
@@ -10,9 +11,6 @@ class Clips(object):
     Contains reference to all the clips created from a svg file.
     Clips could be used on multiple images.
     """
-    #clip_classname = 'clip'
-    #group_classname = 'clip-group'
-
 
     _soup = None
     _tags = (
@@ -147,6 +145,9 @@ class Clips(object):
 
 
     def _xor_composite_clip_layer(self, clips, layer_level=0):
+        """
+        round two clipping.
+        """
 
         #skip the first clip as it doesn't need anything taken away from it.
         this_clip = Image(os.path.join(self.clips_dir, 'clip-%s.png' %
@@ -188,6 +189,7 @@ class Clips(object):
 
 class Scissors(object):
     """
+    Cuts up images based on the clips.
     """
 
     def __init__(self, clips, image, target_directory):
@@ -200,6 +202,7 @@ class Scissors(object):
 
     def cut(self):
         """
+        Cut the image up in pieces.
         """
         for clip_mask in self.clips.masks:
             self._composite(clip_mask, self.image)
@@ -207,12 +210,29 @@ class Scissors(object):
 
     def _composite(self, mask, pic):
         """
-        composite of mask and pic.
+        composite of mask and pic. also trims it and renames with offset.
         """
         base = Image(pic)
         layer = Image(mask) 
         base.composite(layer, 0, 0, co.CopyOpacityCompositeOp)
-        base.write(os.path.join(self.target_directory, "%s-%s.png" %
-            (os.path.basename(pic), os.path.basename(mask))))
-        #TODO: trim and save the offset
+        finished_clip_filename = os.path.join(self.target_directory, "%s-%s.png" %
+            (os.path.basename(pic), os.path.basename(mask)))
+        base.write(finished_clip_filename)
 
+        # Use imagemagick here, since gm doesn't show offset info (geometry)
+        # after trim.
+
+        #mogrify -trim image.png
+        m = subprocess.call(['mogrify', '-trim', finished_clip_filename])
+
+        #identify -ping -format '%w-%h-%g' image.png
+        # example: 214-219-1280x960+461+499
+        f = SpooledTemporaryFile()
+        i = subprocess.call(['identify', '-ping', '-format', '%w-%h-%g',
+            finished_clip_filename], stdout=f)
+        f.seek(0)
+        d = f.read()
+        d = d.strip()
+        (root, ext) = os.path.splitext(finished_clip_filename)
+        new_name = '%s_%s%s' % (root, d, ext)
+        os.rename(finished_clip_filename, new_name)

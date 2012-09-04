@@ -1,5 +1,6 @@
 
 depends on:
+        imagemagick
 	graphicsmagick
 	libgraphicsmagick++-dev
 	libboost-python-dev
