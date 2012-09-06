@@ -36,12 +36,11 @@ class Clips(object):
             )
 
     def __init__(self, svgfile=None, svgstring=None, clips_dir='',
-            dimensions=None, pretty=True):
-        #TODO: dimensions can be used to create a clips that is smaller/larger
-        # then what the svgfile is set to.
+            size=None, pretty=True):
         self._clip_counter = 0
         self.masks = []
         self._clip_layers = []
+        self.size = size
 
         self.clips_dir = clips_dir
         self.pretty = pretty
@@ -63,8 +62,13 @@ class Clips(object):
         """
         # get the dimensions from svgfile
         svg = self._soup.svg
-        self._width = svg.get('width', '100%')
-        self._height = svg.get('height', '100%')
+        if self.size:
+            self._width = self.size[0]
+            self._height = self.size[1]
+        else:
+            self._width = svg.get('width', '100%')
+            self._height = svg.get('height', '100%')
+        vb = svg.get('viewBox', None)
 
         # find all elements with the clip classname? not always possible to be
         # able to add a class name to elements using wysiwyg type editors.
@@ -73,13 +77,17 @@ class Clips(object):
             for svg_clip in layer.find_all(self._tags, recursive=False):
                 # create a blank 'paper' ready to be clipped.
                 dwg = svgwrite.Drawing(size=(self._width, self._height), profile='full')
+                if vb: # TODO: better way of doing this?
+                    (minx, miny, width, height) = vb.split(',') # could also be separated by spaces?
+                    dwg.viewbox(width=width, height=height)
+                    dwg.stretch() # assume that we always want to do this for now.
                 dwg.set_desc(title="Scissors Clip", desc="")
 
                 clip_path = dwg.defs.add(dwg.clipPath())
                 clip_path['id'] = 'clip_path'
 
                 paper_rect = dwg.defs.add(
-                        dwg.rect((0,0), (self._width, self._height), fill="black",
+                        dwg.rect((0,0), (width, height), fill="black",
                             id="scissors_paper_rect")
                         )
                 g = dwg.add(dwg.g())
