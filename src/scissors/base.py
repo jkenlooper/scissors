@@ -69,6 +69,9 @@ class Clips(object):
             self._width = svg.get('width', '100%')
             self._height = svg.get('height', '100%')
         vb = svg.get('viewBox', None)
+        if not vb:
+            width = svg.get('width', '100%')
+            height = svg.get('height', '100%')
 
         # find all elements with the clip classname? not always possible to be
         # able to add a class name to elements using wysiwyg type editors.
