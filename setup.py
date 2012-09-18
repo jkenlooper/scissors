@@ -14,7 +14,7 @@ setup(
     author_email='jake@weboftomorrow.com',
     description="Cut a picture into pieces by following svg paths",
     long_description=read('README.rst'),
-    url='http://www.weboftomorrow.com',
+    url='https://github.com/jkenlooper/scissors',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
