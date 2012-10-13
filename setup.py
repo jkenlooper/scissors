@@ -37,6 +37,7 @@ setup(
         'pgmagick', # relies on graphicsmagick
         'svgwrite',
         'beautifulsoup4', #works on python2.6 ?
+        'pillow',
 
         #'glue',
       ],

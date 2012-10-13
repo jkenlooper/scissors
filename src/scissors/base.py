@@ -1,9 +1,10 @@
 import os
 import subprocess
-from tempfile import SpooledTemporaryFile
+import json
 
 from bs4 import BeautifulSoup
-from pgmagick import Image, CompositeOperator as co
+from pgmagick import Image as GMImage, CompositeOperator as co
+from PIL import Image
 import svgwrite
 
 class Clips(object):
@@ -161,7 +162,7 @@ class Clips(object):
         """
 
         #skip the first clip as it doesn't need anything taken away from it.
-        this_clip = Image(os.path.join(self.clips_dir, 'clip-%s.png' %
+        this_clip = GMImage(os.path.join(self.clips_dir, 'clip-%s.png' %
             clips[0]))
         this_clip.write(os.path.join(self.clips_dir, "clip-co-%s.png" %
             clips[0]))
@@ -170,31 +171,37 @@ class Clips(object):
 
         clip_i = 0
         for clip_id in clips[1:]:
-            previous_clip = Image(os.path.join(self.clips_dir, 'clip-%s.png' %
+            previous_clip = GMImage(os.path.join(self.clips_dir, 'clip-%s.png' %
                 clips[clip_i]))
-            this_clip = Image(os.path.join(self.clips_dir, 'clip-%s.png' %
+            this_clip = GMImage(os.path.join(self.clips_dir, 'clip-%s.png' %
                 clip_id))
 
             this_clip.composite(previous_clip, 0, 0, co.XorCompositeOp)
-            #TODO: verify that clip still has some pixels
-            this_clip.write(os.path.join(self.clips_dir, "clip-co-%s.png" %
-                clip_id))
+            img_file = os.path.join(self.clips_dir, "clip-co-%s.png" % clip_id)
+            this_clip.write(img_file)
             clip_i = clip_i + 1
+            im = Image.open(img_file)
+            if not im.getbbox(): # nothing there so delete it
+                os.unlink(img_file)
 
     def _in_composite(self, previous_clips, clips):
         for prev_clip_id in previous_clips:
             for this_clip_id in clips:
-                previous_clip = Image(os.path.join(self.clips_dir, 'clip-co-%s.png' %
+                previous_clip = GMImage(os.path.join(self.clips_dir, 'clip-co-%s.png' %
                     prev_clip_id))
-                this_clip = Image(os.path.join(self.clips_dir, 'clip-co-%s.png' %
+                this_clip = GMImage(os.path.join(self.clips_dir, 'clip-co-%s.png' %
                     this_clip_id))
 
                 this_clip.composite(previous_clip, 0, 0, co.InCompositeOp)
-                #TODO: verify that clip still has some pixels
-                this_clip.write(os.path.join(self.clips_dir, "clip-in-%s-%s.png" %
-                    (prev_clip_id, this_clip_id)))
-                self.masks.append(os.path.join(self.clips_dir, 'clip-in-%s-%s.png'
-                    % (prev_clip_id, this_clip_id)))
+                img_file = os.path.join(self.clips_dir, "clip-in-%s-%s.png" %
+                    (prev_clip_id, this_clip_id))
+                this_clip.write(img_file)
+
+                im = Image.open(img_file)
+                if not im.getbbox(): # nothing there so delete it
+                    os.unlink(img_file)
+                else:
+                    self.masks.append(img_file)
 
 
 
@@ -202,6 +209,7 @@ class Scissors(object):
     """
     Cuts up images based on the clips.
     """
+    junk_dir = 'junk' # holds untrimmed pieces
 
     def __init__(self, clips, image, target_directory):
         """
@@ -215,35 +223,29 @@ class Scissors(object):
         """
         Cut the image up in pieces.
         """
+        i = 0
+        self.pieces = []
         for clip_mask in self.clips.masks:
-            self._composite(clip_mask, self.image)
+            self._composite(clip_mask, self.image, i=i)
+            i = i+1
+        piece_json_file = open(os.path.join( self.target_directory, 'pieces.json'), 'w')
+        piece_json_file.write(json.dump(self.pieces))
 
 
-    def _composite(self, mask, pic):
+    def _composite(self, mask, pic, i=0):
         """
         composite of mask and pic. also trims it and renames with offset.
         """
-        base = Image(pic)
-        layer = Image(mask) 
+        base = GMImage(pic)
+        layer = GMImage(mask) 
         base.composite(layer, 0, 0, co.CopyOpacityCompositeOp)
-        finished_clip_filename = os.path.join(self.target_directory, "%s-%s.png" %
+        finished_clip_filename = os.path.join(self.target_directory, self.junk_dir, "%s-%s.png" %
             (os.path.basename(pic), os.path.basename(mask)))
         base.write(finished_clip_filename)
 
-        # Use imagemagick here, since gm doesn't show offset info (geometry)
-        # after trim.
+        im = Image.open(finished_clip_filename)
+        box = im.getbbox()
+        trimmed_im = im.crop(box)
+        trimmed_im.save(os.path.join(self.target_directory, "%i.png" % i))
 
-        #mogrify -trim image.png
-        m = subprocess.call(['mogrify', '-trim', finished_clip_filename])
-
-        #identify -ping -format '%w-%h-%g' image.png
-        # example: 214-219-1280x960+461+499
-        f = SpooledTemporaryFile()
-        i = subprocess.call(['identify', '-ping', '-format', '%w-%h-%g',
-            finished_clip_filename], stdout=f)
-        f.seek(0)
-        d = f.read()
-        d = d.strip()
-        (root, ext) = os.path.splitext(finished_clip_filename)
-        new_name = '%s_%s%s' % (root, d, ext)
-        os.rename(finished_clip_filename, new_name)
+        self.pieces[i] = box
