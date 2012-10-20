@@ -218,6 +218,7 @@ class Scissors(object):
         self.image = image
         self.clips = clips
         self.target_directory = target_directory
+        os.mkdir(os.path.join(self.target_directory, self.junk_dir))
 
     def cut(self):
         """
@@ -229,7 +230,7 @@ class Scissors(object):
             self._composite(clip_mask, self.image, i=i)
             i = i+1
         piece_json_file = open(os.path.join( self.target_directory, 'pieces.json'), 'w')
-        piece_json_file.write(json.dump(self.pieces))
+        json.dump(self.pieces, piece_json_file)
 
 
     def _composite(self, mask, pic, i=0):
@@ -244,8 +245,10 @@ class Scissors(object):
         base.write(finished_clip_filename)
 
         im = Image.open(finished_clip_filename)
-        box = im.getbbox()
+        rgb_im = Image.new("RGB", im.size, (0,0,0))
+        rgb_im.paste(im, mask=im.split()[3]) #paste in just the alpha
+        box = rgb_im.getbbox()
         trimmed_im = im.crop(box)
         trimmed_im.save(os.path.join(self.target_directory, "%i.png" % i))
 
-        self.pieces[i] = box
+        self.pieces.append(box)
