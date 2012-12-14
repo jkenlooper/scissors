@@ -244,11 +244,40 @@ class Scissors(object):
             (os.path.basename(pic), os.path.basename(mask)))
         base.write(finished_clip_filename)
 
-        im = Image.open(finished_clip_filename)
+        box = self._trim(finished_clip_filename,
+                os.path.join(self.target_directory, "%i.png" % i))
+
+        self._potrace(mask, i=i, trimmedpng=os.path.join(self.target_directory, "%i.png" % i))
+
+        self.pieces.append(box)
+
+    def _trim(self, img_file, save_path):
+        """
+        Trim down the image by removing alpha from the sides. Returns the
+        bounding box that the image use to be in. Also returns a bmp.
+        """
+        im = Image.open(img_file)
         rgb_im = Image.new("RGB", im.size, (0,0,0))
         rgb_im.paste(im, mask=im.split()[3]) #paste in just the alpha
         box = rgb_im.getbbox()
         trimmed_im = im.crop(box)
-        trimmed_im.save(os.path.join(self.target_directory, "%i.png" % i))
+        trimmed_im.save(save_path)
 
-        self.pieces.append(box)
+        return box
+
+    def _potrace(self, mask, i=0, trimmedpng=None):
+        """
+        Convert the mask into a svg file.
+        """
+
+        #TODO: convert the trimmedpng to a bmp, but not use imagemagick.
+        # convert trimmed.png -alpha Extract trimmed.bmp
+        (bmp, ext) = os.path.splitext(trimmedpng)
+        trimmedbmp = "%s.bmp" % bmp
+        subprocess.call(['convert', trimmedpng, '-alpha', 'Extract', '-negate',
+            trimmedbmp], shell=False)
+
+        potrace = ['potrace', trimmedbmp, '-s', '-o', os.path.join(self.target_directory,
+        "%i.svg" % i)]
+        subprocess.call(potrace, shell=False)
+
