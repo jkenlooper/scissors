@@ -210,6 +210,8 @@ class Scissors(object):
     Cuts up images based on the clips.
     """
     junk_dir = 'junk' # holds untrimmed pieces
+    raster_dir = 'raster'
+    vector_dir = 'vector'
 
     def __init__(self, clips, image, target_directory):
         """
@@ -219,18 +221,22 @@ class Scissors(object):
         self.clips = clips
         self.target_directory = target_directory
         os.mkdir(os.path.join(self.target_directory, self.junk_dir))
+        os.mkdir(os.path.join(self.target_directory, self.raster_dir))
+        os.mkdir(os.path.join(self.target_directory, self.vector_dir))
 
     def cut(self):
         """
-        Cut the image up in pieces.
+        Cut the image up in pieces. Return resulting bounding boxes.
         """
         i = 0
-        self.pieces = []
+        self.pieces = {}
         for clip_mask in self.clips.masks:
             self._composite(clip_mask, self.image, i=i)
             i = i+1
         piece_json_file = open(os.path.join( self.target_directory, 'pieces.json'), 'w')
         json.dump(self.pieces, piece_json_file)
+
+        return self.pieces
 
 
     def _composite(self, mask, pic, i=0):
@@ -238,18 +244,19 @@ class Scissors(object):
         composite of mask and pic. also trims it and renames with offset.
         """
         base = GMImage(pic)
-        layer = GMImage(mask) 
+        layer = GMImage(mask)
         base.composite(layer, 0, 0, co.CopyOpacityCompositeOp)
         finished_clip_filename = os.path.join(self.target_directory, self.junk_dir, "%s-%s.png" %
             (os.path.basename(pic), os.path.basename(mask)))
         base.write(finished_clip_filename)
 
         box = self._trim(finished_clip_filename,
-                os.path.join(self.target_directory, "%i.png" % i))
+                os.path.join(self.target_directory, self.raster_dir, "%i.png" % i))
 
-        self._potrace(mask, i=i, trimmedpng=os.path.join(self.target_directory, "%i.png" % i))
+        self._potrace(mask, i=i,
+                trimmedpng=os.path.join(self.target_directory, self.raster_dir,"%i.png" % i))
 
-        self.pieces.append(box)
+        self.pieces[i] = box
 
     def _trim(self, img_file, save_path):
         """
@@ -272,12 +279,14 @@ class Scissors(object):
 
         #TODO: convert the trimmedpng to a bmp, but not use imagemagick.
         # convert trimmed.png -alpha Extract trimmed.bmp
-        (bmp, ext) = os.path.splitext(trimmedpng)
-        trimmedbmp = "%s.bmp" % bmp
+        #(bmp, ext) = os.path.splitext(trimmedpng)
+        #trimmedbmp = "%s.bmp" % bmp
+        trimmedbmp = os.path.join(self.target_directory, self.junk_dir,
+                "%s.bmp" % i)
         subprocess.call(['convert', trimmedpng, '-alpha', 'Extract', '-negate',
             trimmedbmp], shell=False)
 
-        potrace = ['potrace', trimmedbmp, '-s', '-o', os.path.join(self.target_directory,
-        "%i.svg" % i)]
+        potrace = ['potrace', trimmedbmp, '-s', '-o',
+                os.path.join(self.target_directory, self.vector_dir, "%i.svg" % i)]
         subprocess.call(potrace, shell=False)
 
