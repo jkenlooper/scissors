@@ -264,7 +264,7 @@ class Scissors(object):
         bounding box that the image use to be in. Also returns a bmp.
         """
         im = Image.open(img_file)
-        rgb_im = Image.new("RGB", im.size, (0,0,0))
+        rgb_im = Image.new("RGBA", im.size, (0,0,0,0))
         rgb_im.paste(im, mask=im.split()[3]) #paste in just the alpha
         box = rgb_im.getbbox()
         trimmed_im = im.crop(box)
